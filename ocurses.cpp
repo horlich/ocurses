@@ -16,116 +16,140 @@ using TextUtil::Dimension;
 namespace Ocurses {
 
 
-void AbstractPanelManager::setTop(PanelWinNode* pn) {
-	topWindow.setPointer(pn);
-	pn->getPanel()->top();
-	pn->draw();
-	update_panels();
-	doupdate();
-}
+/*
+                        ScreenDimensions:
+*/
 
+ScreenDimensions::ScreenDimensions(int lines, int cols, int begin_y, int begin_x) :
+      DimArray{lines, cols, begin_y, begin_x} {}
 
-
-void AbstractPanelManager::keyResizePressed(AbstractWindowNode* win) const {
-/* Terminalfenster wurde verändert... *
- * KEY_RESIZE wurde ausgelöst.        *
- * Siehe dazu: https://stackoverflow.com/questions/13707137/resizing-glitch-with-ncurses?rq=1 *
- * oder 'man resizeterm'                                                                      */
-	endwin();
-	win->doResize();
-	update_panels();
-	win->doClear();
-	win->draw();
+std::ostream& operator<< (std::ostream& os, const ScreenDimensions& sd) {
+   os << '(' << sd[0] << ", " << sd[1] << ", " << sd[2] << ", " << sd[3] << ')';
+   return os;
 }
 
 
 
 
-class Curses_impl {
-//
-private:
-//	StackPointer<AbstractTheme> currentTheme;
-	ScreenNode* snode;
-
-public:
-	/* oder etwa auch: 'de_AT.UTF-8'.           *
-	 * Das Locale muß eingestellt werden, damit *
-	 * die Umlaute korrekt dargestellt werden.  */
-	Curses_impl(const std::string& locale = "");
-
-	virtual ~Curses_impl();
-
-	ScreenNode* getScreen() const;
-
-	/* Alle im Programm benötigten Farbenpaare können hier gesammelt initiiert werden. */
-	void initColours(std::vector<ColorPair*> vec) const;
-
-
-	static Dimension getScreenSize() { return Dimension(LINES, COLS); }
-
-	void startPanelManager(AbstractPanelManager* pm);
-
-	virtual void updatePanels() const;
-
-	virtual void beforeExit() { /* Unterklassen! Bevor das Programm endet */ }
-};
-
-
-
-
-
-Curses_impl::Curses_impl(const std::string& locale) {
-	setlocale(LC_ALL, locale.c_str());
-	snode = new ScreenNode();
-	snode->initDefaults();
+void AbstractPanelManager::setTop(PanelWinNode* pn)
+{
+   topWindow.setPointer(pn);
+   pn->getPanel()->top();
+   pn->draw();
+   update_panels();
 }
 
 
-Curses_impl::~Curses_impl() {
-	delete snode;
+void AbstractPanelManager::keyResizePressed() const
+{
+   PanelWinNode* wn = getTopWindow();
+   if (wn == nullptr) return;
+   Ocurses::keyResizePressed(wn);
+}
+
+WindowResponse AbstractPanelManager::myReadKey(int ch)
+{
+   if (ch == KEY_RESIZE) {
+      keyResizePressed();
+      return CONTINUE_LISTENING;
+   }
+   return readKey(ch);
 }
 
 
-ScreenNode* Curses_impl::getScreen() const { return snode; }
+/*
+                         statische Methoden:
+*/
 
-
-void Curses_impl::initColours(std::vector<ColorPair*> vec) const { /* kann mit initColours({ SCHWARZ_WEISS, BLAU_WEISS, ... }) aufgerufen werden */
-	for (auto it = vec.begin(); it != vec.end(); it++) { (*it)->init(); }
+void keyResizePressed(AbstractWindowNode* win)
+{
+   /* Terminalfenster wurde verändert... *
+    * KEY_RESIZE wurde ausgelöst.        *
+    * Siehe dazu: https://stackoverflow.com/questions/13707137/resizing-glitch-with-ncurses?rq=1 *
+    * oder 'man resizeterm'                                                                      */
+   endwin();
+   win->doResize();
+   win->doClear();
+   win->draw();
 }
 
 
-void Curses_impl::updatePanels() const {
-	update_panels();
-	doupdate();
+Dimension getScreenSize()
+{
+   return Dimension(LINES, COLS);
 }
 
 
-void Curses_impl::startPanelManager(AbstractPanelManager* pm) {
-	while(1) {
-		WindowResponse wr = pm->readKey(getch());
-		switch(wr) {
-			case Ocurses::CONTINUE_LISTENING:
-				/* nichts zu tun... */
-				break;
-			case Ocurses::QUIT_PROGRAM_KEY:
-//				MESSAGE.println("Before Exit");
-				beforeExit();
-				return;
-		}
-		updatePanels();
-	}
-}
-
-
-void showCursor(bool show) {
-	short i = (show) ? 1 : 0;
-	curs_set(i);
+void showCursor(bool show)
+{
+   short i = (show) ? 1 : 0;
+   curs_set(i);
 }
 
 
 
+/*
+                      Curses:
+*/
+
+Curses::Curses()
+{
+   /* oder etwa auch: 'de_AT.UTF-8'.           *
+    * Das Locale muß eingestellt werden, damit *
+    * die Umlaute korrekt dargestellt werden.  */
+   setlocale(LC_ALL, "");
+   snode = new ScreenNode();
+   snode->initDefaults();
+}
 
 
+Curses::~Curses()
+{
+   delete snode;
+}
+
+
+ScreenNode* Curses::getScreen() const
+{
+   return snode;
+}
+
+
+void Curses::initColours(std::vector<ColorPair*> vec) const   /* kann mit initColours({ &SCHWARZ_WEISS, &BLAU_WEISS, ... }) aufgerufen werden */
+{
+   for (auto it = vec.begin(); it != vec.end(); it++) {
+      (*it)->init();
+   }
+}
+
+
+void Curses::updatePanels() const
+{
+   update_panels();
+   doupdate();
+}
+
+
+void Curses::start(AbstractPanelManager& pm)
+{
+   PanelWinNode* wn = pm.getStartWindow();
+   if (wn != nullptr) { /* Es ist ein Startwindow definiert... */
+      wn->init(FULLSCREEN);
+      pm.setTop(wn);
+      updatePanels();
+   } /* andernfalls wird auf getScreen() gearbeitet. */
+   while(1) {
+      WindowResponse wr = pm.myReadKey(getch());
+      switch(wr) {
+      case Ocurses::CONTINUE_LISTENING:
+         /* nichts zu tun... */
+         break;
+      case Ocurses::QUIT_PROGRAM_KEY:
+         return;
+      }
+      updatePanels();
+   }
+}
 
 
 

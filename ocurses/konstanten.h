@@ -41,7 +41,7 @@ namespace Ocurses {
 
 
 class ColorPair;
-class AbstractWindow; /* definiert in ocurses/fenster.h */
+//class AbstractWindow; /* definiert in ocurses/fenster.h */
 class FullScreenWindow;
 
 
@@ -51,15 +51,14 @@ extern ColorPair SCHWARZ_WEISS;
 extern ColorPair WEISS_SCHWARZ;
 
 
-//typedef int WindowResponse;
 using WindowResponse = int;
 
 /* Diese Konstanten dürfen keine Werte von Tastatur-Keys *
  * (ASCII oder Latin1) enthalten:                        */
 const WindowResponse CONTINUE_LISTENING	= 1000;
-const WindowResponse QUIT_PROGRAM_KEY 	= 1010;
-const WindowResponse QUIT_WINDOW 		= 1013;
-const WindowResponse ASK_PARENT	 		= 1015;
+const WindowResponse QUIT_PROGRAM_KEY 	   = 1010;
+const WindowResponse QUIT_WINDOW 	   	= 1013;
+const WindowResponse ASK_PARENT	 		   = 1015;
 
 
 

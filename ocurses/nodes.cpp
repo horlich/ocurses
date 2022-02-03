@@ -64,7 +64,7 @@ chtype ColorPair::init() {
 chtype ColorPair::getAttr() const {
 	if (! hasInit) {
 		std::stringstream buf;
-		buf << __PRETTY_FUNCTION__ << ": ColorPair::init() noch nicht aufgerufen.";
+		buf << __PRETTY_FUNCTION__ << ": ColorPair::init() für dieses Farbenpaar noch nicht aufgerufen.";
 		throw ColorException(buf.str());
 	}
 	return attr;

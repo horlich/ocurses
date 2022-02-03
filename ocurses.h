@@ -17,6 +17,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <memory>
+#include <assert.h>
 
 #include <omemory.h>
 #include "otextutil.h"
@@ -36,7 +38,7 @@
  *  WICHTIG: das Programm muß die Locale setzen, damit Umlaute erkannt werden:
  *  #include <locale.h>
  *	setlocale(LC_ALL, "");
- * 
+ *
  * 	Siehe die Wrapper-Funktionen im Header cursesapp.h !!!
  *
  * */
@@ -48,71 +50,106 @@ namespace Ocurses {
 /* in ocurses/windows.h: */
 class ScreenNode;
 class ColorPair;
-//class PanelWinNode;
+class PanelWinNode;
 class AbstractWindowNode;
 
 using Memory::StackPointer;
-using TextUtil::Dimension;
 
 
 
-//using PanelVec = std::vector<Ocurses::PanelNode*>;
+/*
+                          ScreenDimensions:
+*/
 
+using DimArray = std::array<int, 4>;
+
+class ScreenDimensions : public DimArray {
+/* lines | cols | begin_y | begin_x */
+public:
+   ScreenDimensions(int lines = LINES, int cols = COLS, int begin_y = 0, int begin_x = 0);
+};
+
+std::ostream& operator<< (std::ostream& os, const ScreenDimensions& sd);
+
+const ScreenDimensions FULLSCREEN;
+
+
+
+/*
+                         AbstractPanelManager:
+*/
 
 class AbstractPanelManager {
-//
+   /* Unterklassen müssen die Methode
+      readKey(int) implementieren     */
 private:
-	Memory::StackPointer<Ocurses::PanelWinNode> topWindow;
+   Memory::StackPointer<Ocurses::PanelWinNode> topWindow;
 
 public:
-	AbstractPanelManager() : topWindow("Top Window") {}
+   AbstractPanelManager() : topWindow("Top Window") {}
 
-	virtual ~AbstractPanelManager() = default;
+   /* Kopier- und Zuweisschutz: */
+   AbstractPanelManager(const AbstractPanelManager&) = delete;
+   AbstractPanelManager(const AbstractPanelManager&&) = delete;
+   AbstractPanelManager& operator=(const AbstractPanelManager&) = delete;
+   AbstractPanelManager& operator=(const AbstractPanelManager&&) = delete;
 
-	/* Führt auch draw() aus und updatet: */
-	virtual void setTop(PanelWinNode* pn);
+   virtual ~AbstractPanelManager() = default;
 
-	virtual PanelWinNode* getTopWindow() { return topWindow.getValidPointer(); }
+   /* Führt auch draw() aus und updatet: */
+   virtual void setTop(PanelWinNode* pn);
 
-	virtual void keyResizePressed(AbstractWindowNode* win) const;
+   /* Gibt nullptr zurück, wenn topWindow nicht definiert ist: */
+   virtual PanelWinNode* getTopWindow() const
+   {
+      return topWindow.getPointer();
+   }
 
-	virtual Ocurses::WindowResponse readKey(int ch) = 0;
+   /* Unterklassen können bestimmen, welches
+      Fenster zu Programmstart angezeigt werden soll: */
+   virtual PanelWinNode* getStartWindow()
+   {
+      return nullptr;
+   }
+
+   /* Code: KEY_RESIZE */
+   virtual void keyResizePressed() const;
+
+   virtual Ocurses::WindowResponse readKey(int ch) = 0;
+
+   Ocurses::WindowResponse myReadKey(int ch);
 };
 
 
+void keyResizePressed(AbstractWindowNode* win);
+
+Dimension getScreenSize();
 
 
-
-
-
+/*
+                             Curses:
+*/
 
 class Curses {
 //
 private:
-//	StackPointer<AbstractTheme> currentTheme;
-	ScreenNode* snode;
+   ScreenNode* snode;
 
 public:
-	/* oder etwa auch: 'de_AT.UTF-8'.           *
-	 * Das Locale muß eingestellt werden, damit *
-	 * die Umlaute korrekt dargestellt werden.  */
-	Curses(const std::string& locale = "");
+   Curses();
+   Curses(const Curses&) = delete;
+   Curses& operator=(const Curses&) = delete;
 
-	virtual ~Curses();
+   virtual ~Curses();
 
-	ScreenNode* getScreen() const;
+   virtual ScreenNode* getScreen() const;
 
-	/* Alle im Programm benötigten Farbenpaare können hier gesammelt initiiert werden. */
-	void initColours(std::vector<ColorPair*> vec) const;
+   /* Alle im Programm benötigten Farbenpaare können hier gesammelt initiiert werden. */
+   virtual void initColours(std::vector<ColorPair*> vec) const;
 
+   virtual void start(AbstractPanelManager& pm);
 
-	static Dimension getScreenSize() { return Dimension(LINES, COLS); }
-
-	void startPanelManager(AbstractPanelManager* pm);
-
-	virtual void updatePanels() const;
-
-	virtual void beforeExit() { /* Unterklassen! Bevor das Programm endet */ }
+   virtual void updatePanels() const;
 };
 
 
@@ -121,7 +158,6 @@ public:
 
 
 void showCursor(bool show = true);
-
 
 
 

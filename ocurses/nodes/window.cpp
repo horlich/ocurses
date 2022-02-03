@@ -11,25 +11,25 @@
 
 #include "window.h"
 
-using namespace Ocurses;
 using namespace std;
 
 
 
+namespace Ocurses {
+	//
 
 
 
-
-
+void AbstractWindowNode::init(ScreenDimensions d) {}
 
 
 AbstractWindowNode::~AbstractWindowNode() {
 	if (pointerIsValid()) {
-//		MESSAGE.stream() << "vor delwin" << endl;
 		delwin(getCPointer());
 		setPointer(nullptr);
 	}
 }
+
 
 Dimension AbstractWindowNode::getSize() const {
 	Dimension ret;
@@ -45,7 +45,7 @@ Dimension AbstractWindowNode::getPosition() const {
 
 
 void AbstractWindowNode::update() const {
-	wnoutrefresh(getCPointer());
+	if (wnoutrefresh(getCPointer()) == ERR) throw OcursesException("wnoutrefresh() mißlungen");
 }
 
 
@@ -65,12 +65,6 @@ void AbstractWindowNode::drawBox() const {
 void AbstractWindowNode::moveCursor(TextUtil::Dimension pos) const {
 	wmove(getCPointer(), pos.height, pos.width);
 }
-
-
-//void AbstractWindowNode::showCursor(bool show = true) const {
-//	short i = (show) ? 1 : 0;
-//	curs_set(i);
-//}
 
 
 void AbstractWindowNode::clearLine(int y) const {
@@ -118,13 +112,6 @@ short AbstractWindowNode::getBgColorIndex() const {
 }
 
 
-//void AbstractWindowNode::markLine(short colorIndex, int line, int startx) const {
-//	mvwchgat(getCPointer(), line, startx, -1, A_COLOR, colorIndex, nullptr);
-//}
-//
-//
-//void AbstractWindowNode::markLine(ColorPair& cp, int line, int startx) const { markLine(cp.getIndex(), line, startx); }
-
 
 void AbstractWindowNode::enableScrolling(bool toggle) const {
 	scrollok(getCPointer(), toggle);
@@ -167,12 +154,10 @@ void AbstractWindowNode::printlnZentriert(int line, const std::string& text) con
 }
 
 
-namespace Ocurses {
-	//
 	void _putn(std::ostream& os, int n, char c) {
 		for (; n > 0; n--) os.put(c);
 	}
-}
+
 
 void AbstractWindowNode::printlnBetont(int line, const std::string& text) const {
 	int textLength = text.length();
@@ -199,24 +184,15 @@ void AbstractWindowNode::printlnBetont(int line, const std::string& text) const 
 
 
 
-
-
-
-
-
-
-WinNode::WinNode(TextUtil::Dimension size, TextUtil::Dimension pos) {
-	setPointer(newwin(size.height, size.width, pos.height, pos.width));
-	if (! pointerIsValid()) {
-		std::stringstream buf;
-		buf << __PRETTY_FUNCTION__ << ": newwin() fehlgeschlagen mit folgenden Parametern:\n" <<
-				"h=" << size.height << "; w=" << size.width << "; y=" << pos.height <<"; x=" << pos.width << endl;
-		throw BadDesign(buf.str());
-	}
+void WinNode::init(ScreenDimensions d) {
+	if (pointerIsValid()) delwin(getCPointer());
+   setPointer(newwin(d[0], d[1], d[2], d[3]));
+   if (! pointerIsValid()) {
+      std::stringstream buf;
+      buf << __PRETTY_FUNCTION__ << ": newwin() fehlgeschlagen mit Parametern " << d << endl;
+      throw BadDesign(buf.str());
+   }
 }
-
-
-WinNode::WinNode(WINDOW* w) { this->setPointer(w);	}
 
 
 void WinNode::popUp(PanelWinNode& popup) {
@@ -226,7 +202,6 @@ void WinNode::popUp(PanelWinNode& popup) {
 	doupdate();
 	WindowResponse resp = CONTINUE_LISTENING;
 	while (resp != Ocurses::QUIT_WINDOW) {
-//		resp = popup.readKey(popup.getChar());
 		resp = popup.readKey(wgetch(popup.getCPointer()));
 	}
 	popup.getPanel()->hide();
@@ -236,14 +211,14 @@ void WinNode::popUp(PanelWinNode& popup) {
 
 
 
-PanelWinNode::PanelWinNode(Dimension size, Dimension pos) :
-	WinNode(size, pos), panel("Panel") {
+PanelWinNode::PanelWinNode() : panel("Panel") {}
+
+
+void PanelWinNode::init(ScreenDimensions d) {
+   WinNode::init(d);
 	PanelNode* pn = new PanelNode(this->getCPointer());
 	panel.setPointer(pn);
-	update_panels();
 }
-
-
 
 
 
@@ -253,24 +228,31 @@ void AbstractSubWinNode::update() const {
 }
 
 
-DerWinNode::DerWinNode(AbstractWindowNode& w, TextUtil::Dimension size, TextUtil::Dimension pos) : AbstractSubWinNode(w) {
-	setPointer(derwin(w.getCPointer(), size.height, size.width, pos.height, pos.width));
-	if (! pointerIsValid()) {
-		std::stringstream buf;
-		buf << __PRETTY_FUNCTION__ << ": derwin() fehlgeschlagen mit folgenden Parametern:\n" <<
-				"Parent-Pointer=" << w.getCPointer() << "; h=" << size.height << "; w=" << size.width << "; y=" << pos.height <<"; x=" << pos.width << endl;
-		throw BadDesign(buf.str());
-	}
+DerWinNode::DerWinNode(AbstractWindowNode& w) : AbstractSubWinNode(w) {}
+
+
+void DerWinNode::init(ScreenDimensions d) {
+	if (pointerIsValid()) delwin(getCPointer());
+   setPointer(derwin(getParentSource(), d[0], d[1], d[2], d[3]));
+   if (! pointerIsValid()) {
+      std::stringstream buf;
+      buf << __PRETTY_FUNCTION__ << ": derwin() fehlgeschlagen mit Parametern " << d << endl;
+      throw BadDesign(buf.str());
+   }
 }
 
-SubWinNode::SubWinNode(AbstractWindowNode& w, TextUtil::Dimension size, TextUtil::Dimension pos): AbstractSubWinNode(w) {
-	setPointer(subwin(w.getCPointer(), size.height, size.width, pos.height, pos.width));
-	if (! pointerIsValid()) {
-		std::stringstream buf;
-		buf << __PRETTY_FUNCTION__ << ": subwin() fehlgeschlagen mit folgenden Parametern:\n" <<
-				"Parent-Pointer=" << w.getCPointer() << "; h=" << size.height << "; w=" << size.width << "; y=" << pos.height <<"; x=" << pos.width << endl;
-		throw BadDesign(buf.str());
-	}
+
+SubWinNode::SubWinNode(AbstractWindowNode& w): AbstractSubWinNode(w) {}
+
+
+void SubWinNode::init(ScreenDimensions d) {
+	if (pointerIsValid()) delwin(getCPointer());
+   setPointer(subwin(getParentSource(), d[0], d[1], d[2], d[3]));
+   if (! pointerIsValid()) {
+      std::stringstream buf;
+      buf << __PRETTY_FUNCTION__ << ": subwin() fehlgeschlagen mit Parametern " << d << endl;
+      throw BadDesign(buf.str());
+   }
 }
 
 
@@ -308,7 +290,7 @@ void ScreenNode::initDefaults() {
 
 
 
-
+} // Ende namespace Ocurses
 
 
 

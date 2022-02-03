@@ -66,9 +66,6 @@ public:
 template<class C>
 class AbstractNode {
 	StackPointer<C> cpointer;
-	/* Kopier- und Zuweisschutz: */
-	AbstractNode(const AbstractNode&) = delete;
-	AbstractNode& operator=(const AbstractNode&) = delete;
 
 protected:
 	AbstractNode(const std::string& name, C* pt = nullptr) : cpointer(name, pt) {}
@@ -78,14 +75,20 @@ protected:
 	bool pointerIsValid() { return cpointer.hasValidPointer(); }
 
 public:
+	/* Kopier- und Zuweisschutz: */
+	AbstractNode(const AbstractNode&) = delete;
+	AbstractNode(const AbstractNode&&) = delete;
+	AbstractNode& operator=(const AbstractNode&) = delete;
+	AbstractNode& operator=(const AbstractNode&&) = delete;
+
 	virtual ~AbstractNode() = default;
 
 	C* getCPointer() const { return cpointer.getValidPointer(); }
 
-	template<class To>
-	static To* dynCast(AbstractNode<C>* v) {
-		return Memory::dynCast<AbstractNode<C>, To>(v);
-	}
+//	template<class To>
+//	static To* dynCast(AbstractNode<C>* v) {
+//		return Memory::dynCast<AbstractNode<C>, To>(v);
+//	}
 
 	virtual Dimension getSize() const = 0;
 
