@@ -32,7 +32,7 @@
  *  statt der Bibliothek -lpanel die Bibliothek -lpanelw linken!
  *  statt -lncurses -lncursesw
  *  -lncursesw muß zuletzt kommen!
- *  also z.B. gcc -Wall -o "programm" "programm.c"  -lpanelw -lformw -lmenuw -lncursesw
+ *  also z.B. gcc -Wall -o "programm" "programm.cpp"  -lpanelw -lformw -lmenuw -lncursesw
  *
  *
  *  WICHTIG: das Programm muß die Locale setzen, damit Umlaute erkannt werden:
@@ -71,7 +71,7 @@ public:
 
 std::ostream& operator<< (std::ostream& os, const ScreenDimensions& sd);
 
-const ScreenDimensions FULLSCREEN;
+ScreenDimensions fullScreen();
 
 
 

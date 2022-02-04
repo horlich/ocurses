@@ -37,12 +37,14 @@ namespace Ocurses {
 
 class FieldNode : public AbstractNode<FIELD> {
 	//
-	/* Kopier- und Zuweisschutz: */
-	FieldNode(const FieldNode&);
-	FieldNode& operator=(const FieldNode&);
-
 public:
 	FieldNode(Dimension size, Dimension pos, int offscreen = 0);
+
+   /* Kopier- und Zuweisschutz: */
+   FieldNode(const FieldNode&) = delete;
+   FieldNode(const FieldNode&&) = delete;
+   FieldNode& operator=(const FieldNode&) = delete;
+   FieldNode& operator=(const FieldNode&&) = delete;
 
 	virtual ~FieldNode();
 
@@ -75,6 +77,12 @@ class DatumFieldNode : public FieldNode {
 public:
 	DatumFieldNode(Dimension size, Dimension pos, int offscreen = 0);
 
+   /* Kopier- und Zuweisschutz: */
+   DatumFieldNode(const DatumFieldNode&) = delete;
+   DatumFieldNode(const DatumFieldNode&&) = delete;
+   DatumFieldNode& operator=(const DatumFieldNode&) = delete;
+   DatumFieldNode& operator=(const DatumFieldNode&&) = delete;
+
 	virtual ~DatumFieldNode() = default;
 
 	void setToday();
@@ -92,11 +100,6 @@ class FormNode : public AbstractNode<FORM> {
 	//
 	FIELD** fieldArray = nullptr;
 	FieldVec felder;
-//	Dimension scale;
-
-	/* Kopier- und Zuweisschutz: */
-	FormNode(const FormNode&);
-	FormNode& operator=(const FormNode&);
 
 protected:
 	bool posted = false;
@@ -108,9 +111,13 @@ protected:
 public:
 	FormNode (FieldVec vec) : AbstractNode<FORM>("FORM"), felder(vec) {}
 
-	virtual ~FormNode();
+   /* Kopier- und Zuweisschutz: */
+   FormNode(const FormNode&) = delete;
+   FormNode(const FormNode&&) = delete;
+   FormNode& operator=(const FormNode&) = delete;
+   FormNode& operator=(const FormNode&&) = delete;
 
-//	FieldNode* addField(Dimension size, Dimension pos, int offscreen);
+	virtual ~FormNode();
 
 	int getFieldCount() const;
 
@@ -196,8 +203,6 @@ public:
 		}
 	}
 
-
-
 	int printKey(int ch) const;
 
 	Dimension getSize() const override;
@@ -217,6 +222,12 @@ class WindowFormNode : public FormNode {
 public:
 	/* pos ist die Position des form_sub relativ zu *this, also zum form_win: */
 	WindowFormNode(FieldVec vec, AbstractWindowNode* parent, TextUtil::Dimension pos);
+
+   /* Kopier- und Zuweisschutz: */
+   WindowFormNode(const WindowFormNode&) = delete;
+   WindowFormNode(const WindowFormNode&&) = delete;
+   WindowFormNode& operator=(const WindowFormNode&) = delete;
+   WindowFormNode& operator=(const WindowFormNode&&) = delete;
 
 	virtual ~WindowFormNode() = default;
 

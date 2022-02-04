@@ -17,7 +17,7 @@ namespace Ocurses {
 
 
 /*
-                        ScreenDimensions:
+                          ScreenDimensions:
 */
 
 ScreenDimensions::ScreenDimensions(int lines, int cols, int begin_y, int begin_x) :
@@ -28,8 +28,15 @@ std::ostream& operator<< (std::ostream& os, const ScreenDimensions& sd) {
    return os;
 }
 
+ScreenDimensions fullScreen() { return ScreenDimensions(); }
 
 
+
+
+
+/*
+                         AbstractPanelManager:
+*/
 
 void AbstractPanelManager::setTop(PanelWinNode* pn)
 {
@@ -134,7 +141,7 @@ void Curses::start(AbstractPanelManager& pm)
 {
    PanelWinNode* wn = pm.getStartWindow();
    if (wn != nullptr) { /* Es ist ein Startwindow definiert... */
-      wn->init(FULLSCREEN);
+      wn->init(fullScreen());
       pm.setTop(wn);
       updatePanels();
    } /* andernfalls wird auf getScreen() gearbeitet. */
