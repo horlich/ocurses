@@ -18,9 +18,9 @@ using namespace std;
 namespace Ocurses {
 	//
 
+/*------------------------/ AbstractWindowNode /------------------------*/
 
-
-void AbstractWindowNode::init(ScreenDimensions d) {}
+void AbstractWindowNode::init(Geometry d) {}
 
 
 AbstractWindowNode::~AbstractWindowNode() {
@@ -183,8 +183,9 @@ void AbstractWindowNode::printlnBetont(int line, const std::string& text) const 
 
 
 
+/*------------------------/ WinNode: /------------------------*/
 
-void WinNode::init(ScreenDimensions d) {
+void WinNode::init(Geometry d) {
 	if (pointerIsValid()) delwin(getCPointer());
    setPointer(newwin(d[0], d[1], d[2], d[3]));
    if (! pointerIsValid()) {
@@ -192,6 +193,7 @@ void WinNode::init(ScreenDimensions d) {
       buf << __PRETTY_FUNCTION__ << ": newwin() fehlgeschlagen mit Parametern " << d << endl;
       throw BadDesign(buf.str());
    }
+   initChildren();
 }
 
 
@@ -210,16 +212,26 @@ void WinNode::popUp(PanelWinNode& popup) {
 
 
 
+/*------------------------/ PanelWinNode: /------------------------*/
 
 PanelWinNode::PanelWinNode() : panel("Panel") {}
 
 
-void PanelWinNode::init(ScreenDimensions d) {
+void PanelWinNode::init(Geometry d) {
    WinNode::init(d);
 	PanelNode* pn = new PanelNode(this->getCPointer());
 	panel.setPointer(pn);
 }
 
+
+
+/*------------------------/ AbstractSubWinNode: /------------------------*/
+
+WINDOW* AbstractSubWinNode::getParentSource() const
+{
+   if (! pointerIsValid()) throw BadDesign("AbstractSubWinNode::getParentSource(): Mein *WINDOW existiert noch nicht!");
+   return wgetparent(getCPointer());
+}
 
 
 void AbstractSubWinNode::update() const {
@@ -228,39 +240,43 @@ void AbstractSubWinNode::update() const {
 }
 
 
+
+/*------------------------/ DerWinNode: /------------------------*/
+
 DerWinNode::DerWinNode(AbstractWindowNode& w) : AbstractSubWinNode(w) {}
 
 
-void DerWinNode::init(ScreenDimensions d) {
+void DerWinNode::init(Geometry d) {
 	if (pointerIsValid()) delwin(getCPointer());
-   setPointer(derwin(getParentSource(), d[0], d[1], d[2], d[3]));
+   setPointer(derwin(getParentNode().getCPointer(), d[0], d[1], d[2], d[3]));
    if (! pointerIsValid()) {
       std::stringstream buf;
       buf << __PRETTY_FUNCTION__ << ": derwin() fehlgeschlagen mit Parametern " << d << endl;
       throw BadDesign(buf.str());
    }
+   initChildren();
 }
 
+
+/*------------------------/ SubWinNode: /------------------------*/
 
 SubWinNode::SubWinNode(AbstractWindowNode& w): AbstractSubWinNode(w) {}
 
 
-void SubWinNode::init(ScreenDimensions d) {
+void SubWinNode::init(Geometry d) {
 	if (pointerIsValid()) delwin(getCPointer());
-   setPointer(subwin(getParentSource(), d[0], d[1], d[2], d[3]));
+   setPointer(subwin(getParentNode().getCPointer(), d[0], d[1], d[2], d[3]));
    if (! pointerIsValid()) {
       std::stringstream buf;
       buf << __PRETTY_FUNCTION__ << ": subwin() fehlgeschlagen mit Parametern " << d << endl;
       throw BadDesign(buf.str());
    }
+   initChildren();
 }
 
 
 
-
-
-
-
+/*------------------------/ ScreenNode: /------------------------*/
 
 void ScreenNode::startColor() {
 	if (! has_colors()) throw ColorException("Dieses Terminal hat keine Farben.");
@@ -274,7 +290,6 @@ ScreenNode::ScreenNode() {
 }
 
 ScreenNode::~ScreenNode() {
-//	MESSAGE.stream() << "vor endwin()" << endl;
 	endwin();
 	setPointer(nullptr);
 }

@@ -8,23 +8,11 @@
 #ifndef OCURSES_H_
 #define OCURSES_H_
 
-//#include <curses.h>
-#include <ncursesw/menu.h>
-#include <stddef.h>
-#include <array>
-#include <initializer_list>
-#include <iterator>
-#include <set>
-#include <string>
-#include <vector>
-#include <memory>
-#include <assert.h>
-
+#include <ncursesw/curses.h>
 #include <omemory.h>
 #include "otextutil.h"
-
+//
 #include "ocurses/konstanten.h"
-#include "ocurses/nodes.h"
 #include "ocurses/nodes/window.h"
 
 /*
@@ -52,26 +40,28 @@ class ScreenNode;
 class ColorPair;
 class PanelWinNode;
 class AbstractWindowNode;
+//class TextUtil::Dimension;
 
 using Memory::StackPointer;
+using TextUtil::Dimension;
 
 
 
 /*
-                          ScreenDimensions:
+                          Geometry:
 */
 
 using DimArray = std::array<int, 4>;
 
-class ScreenDimensions : public DimArray {
-/* lines | cols | begin_y | begin_x */
+class Geometry : public DimArray {
+/* Arraybelegung: lines | cols | begin_y | begin_x */
 public:
-   ScreenDimensions(int lines = LINES, int cols = COLS, int begin_y = 0, int begin_x = 0);
+   Geometry(int lines = LINES, int cols = COLS, int begin_y = 0, int begin_x = 0);
 };
 
-std::ostream& operator<< (std::ostream& os, const ScreenDimensions& sd);
+std::ostream& operator<< (std::ostream& os, const Geometry& sd);
 
-ScreenDimensions fullScreen();
+Geometry fullScreen();
 
 
 
@@ -147,6 +137,7 @@ public:
    /* Alle im Programm benötigten Farbenpaare können hier gesammelt initiiert werden. */
    virtual void initColours(std::vector<ColorPair*> vec) const;
 
+   /* führt auch init() und setTop() des StartWindows aus: */
    virtual void start(AbstractPanelManager& pm);
 
    virtual void updatePanels() const;

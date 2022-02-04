@@ -17,18 +17,18 @@ namespace Ocurses {
 
 
 /*
-                          ScreenDimensions:
+                          Geometry:
 */
 
-ScreenDimensions::ScreenDimensions(int lines, int cols, int begin_y, int begin_x) :
+Geometry::Geometry(int lines, int cols, int begin_y, int begin_x) :
       DimArray{lines, cols, begin_y, begin_x} {}
 
-std::ostream& operator<< (std::ostream& os, const ScreenDimensions& sd) {
+std::ostream& operator<< (std::ostream& os, const Geometry& sd) {
    os << '(' << sd[0] << ", " << sd[1] << ", " << sd[2] << ", " << sd[3] << ')';
    return os;
 }
 
-ScreenDimensions fullScreen() { return ScreenDimensions(); }
+Geometry fullScreen() { return Geometry(); }
 
 
 

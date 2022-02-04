@@ -47,6 +47,12 @@ private:
 public:
 	ColorPair(int fg = COLOR_BLACK, int bg = COLOR_WHITE);
 
+   /* Kopier- und Zuweisschutz: */
+   ColorPair(const ColorPair&) = delete;
+   ColorPair(const ColorPair&&) = delete;
+   ColorPair& operator=(const ColorPair&) = delete;
+   ColorPair& operator=(const ColorPair&&) = delete;
+
 	virtual ~ColorPair() = default;
 
 	inline int getIndex() const { return index; }
@@ -72,8 +78,6 @@ protected:
 
 	void setPointer(C* pt) { cpointer.setPointer(pt); }
 
-	bool pointerIsValid() { return cpointer.hasValidPointer(); }
-
 public:
 	/* Kopier- und Zuweisschutz: */
 	AbstractNode(const AbstractNode&) = delete;
@@ -83,12 +87,9 @@ public:
 
 	virtual ~AbstractNode() = default;
 
-	C* getCPointer() const { return cpointer.getValidPointer(); }
+	bool pointerIsValid() const { return cpointer.hasValidPointer(); }
 
-//	template<class To>
-//	static To* dynCast(AbstractNode<C>* v) {
-//		return Memory::dynCast<AbstractNode<C>, To>(v);
-//	}
+	C* getCPointer() const { return cpointer.getValidPointer(); }
 
 	virtual Dimension getSize() const = 0;
 

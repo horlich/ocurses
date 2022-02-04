@@ -11,20 +11,11 @@
 
 
 
-#include <ncursesw/form.h>
-#include <ncursesw/panel.h>
-#include <ncursesw/menu.h>
-
-#include <omemory.h>
-#include <otextutil.h>
-#include <string>
-#include <stack>
-
 #include "../nodes.h"
-#include "../konstanten.h"
-#include "../exceptions.h"
 #include "../../ocurses.h"
 #include "panel.h"
+#include "otextutil.h"
+#include "omemory.h"
 
 
 using TextUtil::Dimension;
@@ -38,7 +29,7 @@ namespace Ocurses {
 
 
 class PanelWinNode;
-class ScreenDimensions;
+class Geometry;
 
 
 /*
@@ -59,7 +50,10 @@ public:
 
    virtual ~AbstractWindowNode();
 
-   virtual void init(ScreenDimensions d);
+   virtual void init(Geometry d);
+
+   /* Hier müssen die Subwindows und Formulare initialisiert werden: */
+   virtual void initChildren() { /* Unterklassen... */ }
 
    /* NICHT verwenden, wenn Panels im Einsatz!
     * Diesfalls WindowManager::updatePanels() verwenden! */
@@ -139,7 +133,7 @@ public:
    void enableScrolling(bool toggle = true) const;
 
    void scrolln(int lines = 1) const;
-};
+}; // AbstractWindowNode
 
 
 
@@ -178,10 +172,10 @@ public:
 
    virtual ~WinNode() = default;
 
-   void init(ScreenDimensions d);
+   void init(Geometry d);
 
    void popUp(PanelWinNode& popup);
-};
+}; // WinNode
 
 
 
@@ -203,7 +197,7 @@ public:
    PanelWinNode& operator=(const PanelWinNode&&) = delete;
 
 
-   void init(ScreenDimensions d);
+   void init(Geometry d);
 
 
    virtual PanelNode* getPanel()
@@ -220,7 +214,7 @@ public:
    {
       return ASK_PARENT;
    }
-};
+}; // PanelWinNode
 
 
 /*
@@ -239,10 +233,11 @@ public:
    AbstractSubWinNode& operator=(const AbstractSubWinNode&) = delete;
    AbstractSubWinNode& operator=(const AbstractSubWinNode&&) = delete;
 
-   WINDOW* getParentSource() const
-   {
-      return wgetparent(getCPointer());
-   }
+   /* Diese Methode setzt voraus, dass mein *WINDOW schon
+      definiert ist, also daß init() schon aufgerufen wurde.
+      *WINDOW kann auch mit getParentNode().getCPointer()
+      abgerufen werden. */
+   WINDOW* getParentSource() const;
 
    const AbstractWindowNode& getParentNode() const
    {
@@ -252,7 +247,7 @@ public:
    void update() const override;
 
    virtual ~AbstractSubWinNode() = default;
-};
+}; // AbstractSubWinNode
 
 
 
@@ -261,7 +256,9 @@ public:
 */
 
 class DerWinNode : public AbstractSubWinNode {
-//
+   /* derwin ist im Prinzip das selbe wie subwin. Während die Position (begin_y, begin_x)
+      des Fensters bei der Funktion subwin aber *relativ zum Screen* festgelegt wird, ist
+      die Position bei derwin relativ zum *orig-Fenster*.                              */
 public:
    DerWinNode(AbstractWindowNode& w);
 
@@ -271,8 +268,7 @@ public:
    DerWinNode& operator=(const DerWinNode&) = delete;
    DerWinNode& operator=(const DerWinNode&&) = delete;
 
-
-   void init(ScreenDimensions d);
+   void init(Geometry d);
 
    virtual ~DerWinNode() = default;
 };
@@ -294,8 +290,7 @@ public:
    SubWinNode& operator=(const SubWinNode&) = delete;
    SubWinNode& operator=(const SubWinNode&&) = delete;
 
-
-   void init(ScreenDimensions d);
+   void init(Geometry d);
 
    virtual ~SubWinNode() = default;
 };
