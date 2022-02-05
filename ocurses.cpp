@@ -40,9 +40,12 @@ Geometry fullScreen() { return Geometry(); }
 
 void AbstractPanelManager::setTop(PanelWinNode* pn)
 {
+   PanelWinNode* oldw = getTopWindow();
+   oldw->lostFocus();
    topWindow.setPointer(pn);
    pn->getPanel()->top();
    pn->draw();
+   pn->gotFocus();
    update_panels();
 }
 
@@ -87,10 +90,10 @@ Dimension getScreenSize()
 }
 
 
-void showCursor(bool show)
+int showCursor(bool show)
 {
    short i = (show) ? 1 : 0;
-   curs_set(i);
+   return curs_set(i);
 }
 
 

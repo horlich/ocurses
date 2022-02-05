@@ -147,8 +147,10 @@ public:
 
 /*  S T A T I S C H E   M E T H O D E N :  */
 
-
-void showCursor(bool show = true);
+/* Siehe 'man curs_set'! Der Status 'very visible' wird hier nicht
+   unterstützt. Rückgabe: If the terminal supports the visibility requested,
+   the previous cursor state is returned; otherwise, ERR is returned:     */
+int showCursor(bool show = true);
 
 
 

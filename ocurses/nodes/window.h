@@ -83,6 +83,10 @@ public:
       return werase(getCPointer());
    }
 
+   virtual void gotFocus()  { /* Unterklassen */ }
+
+   virtual void lostFocus() { /* Unterklassen */ }
+
    int getChar() const;
 
    int ungetChar(int ch) const;
@@ -128,6 +132,12 @@ public:
 
    short getBgColorIndex() const;
 
+   /* The keypad option enables the keypad of the user's terminal.
+      If enabled (bf is TRUE), the user can press a function key
+      (such as an arrow key) and wgetch returns a single value
+      representing the function key, as in KEY_LEFT. If disabled
+      (bf is FALSE), curses does not treat function keys specially
+      and the program has to interpret the escape sequences itself.  */
    void setKeypad() const;
 
    void enableScrolling(bool toggle = true) const;

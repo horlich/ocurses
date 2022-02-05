@@ -200,12 +200,14 @@ void WinNode::init(Geometry d) {
 void WinNode::popUp(PanelWinNode& popup) {
 	popup.draw();
 	popup.getPanel()->top();
+	popup.gotFocus();
 	update_panels();
 	doupdate();
 	WindowResponse resp = CONTINUE_LISTENING;
 	while (resp != Ocurses::QUIT_WINDOW) {
 		resp = popup.readKey(wgetch(popup.getCPointer()));
 	}
+	popup.lostFocus();
 	popup.getPanel()->hide();
 }
 
