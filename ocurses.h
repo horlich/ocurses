@@ -150,7 +150,7 @@ public:
 /* Siehe 'man curs_set'! Der Status 'very visible' wird hier nicht
    unterstützt. Rückgabe: If the terminal supports the visibility requested,
    the previous cursor state is returned; otherwise, ERR is returned:     */
-int showCursor(bool show = true);
+bool showCursor(bool show = true);
 
 
 

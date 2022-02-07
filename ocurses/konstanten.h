@@ -41,14 +41,16 @@ namespace Ocurses {
 
 
 class ColorPair;
-//class AbstractWindow; /* definiert in ocurses/fenster.h */
 class FullScreenWindow;
 
 
+/* Definiert in nodes.cpp: */
 extern ColorPair WEISS_BLAU;
 extern ColorPair BLAU_WEISS;
 extern ColorPair SCHWARZ_WEISS;
 extern ColorPair WEISS_SCHWARZ;
+extern ColorPair WEISS_ROT;
+extern ColorPair ROT_WEISS;
 
 
 using WindowResponse = int;

@@ -30,16 +30,24 @@ namespace Ocurses {
 
 class PanelWinNode;
 class Geometry;
+class AbstractWindowNode;
+class SubWinNode;
 
 
 /*
                      AbstractWindowNode:
 */
 
+using WinChilds = std::vector<AbstractWindowNode*>;
+
+
 class AbstractWindowNode : public AbstractNode<WINDOW> {
    //
+   WinChilds children; /* Brauchen wir wahrscheinlich nicht */
+   AbstractWindowNode* parent = nullptr;
+
 protected:
-   AbstractWindowNode() : AbstractNode<WINDOW>("WINDOW") {}
+   AbstractWindowNode(AbstractWindowNode* _parent = nullptr) : AbstractNode<WINDOW>("WINDOW"), parent(_parent) {}
 
 public:
    /* Kopier- und Zuweisschutz: */
@@ -50,10 +58,16 @@ public:
 
    virtual ~AbstractWindowNode();
 
-   virtual void init(Geometry d);
+   virtual void deleteSource(); /* Löscht *WINDOW */
+
+   /* Wenn kein parent, gibt nullptr zurück: */
+   const AbstractWindowNode* getParent() const { return parent; }
 
    /* Hier müssen die Subwindows und Formulare initialisiert werden: */
    virtual void initChildren() { /* Unterklassen... */ }
+
+   /* Wird wahrscheinlich gar nicht gebraucht: */
+   void addChild(AbstractWindowNode& child);
 
    /* NICHT verwenden, wenn Panels im Einsatz!
     * Diesfalls WindowManager::updatePanels() verwenden! */
@@ -145,6 +159,9 @@ public:
    void scrolln(int lines = 1) const;
 }; // AbstractWindowNode
 
+/* Gleich, wenn beide auf dieselbe Adresse zeigen, also ident sind
+   Wird gebraucht für std::find():                               */
+bool operator==(const AbstractWindowNode&, const AbstractWindowNode&);
 
 
 template <typename... Args>
@@ -170,9 +187,7 @@ void AbstractWindowNode::printf(const std::string& fmt, Args... args) const
 class WinNode : public AbstractWindowNode {
 //
 public:
-   WinNode() = default;
-
-//   WinNode(WINDOW* w);
+   WinNode(AbstractWindowNode* parent = nullptr) : AbstractWindowNode(parent) {}
 
    /* Kopier- und Zuweisschutz: */
    WinNode(const WinNode&) = delete;
@@ -182,9 +197,12 @@ public:
 
    virtual ~WinNode() = default;
 
-   void init(Geometry d);
+   virtual void init(Geometry);
 
    void popUp(PanelWinNode& popup);
+
+   void showSimpleMessage(const std::wstring& message);
+
 }; // WinNode
 
 
@@ -198,7 +216,7 @@ class PanelWinNode : public WinNode {
    Memory::HeapPointer<PanelNode> panel;
 
 public:
-   PanelWinNode();
+   PanelWinNode(AbstractWindowNode* parent = nullptr);
 
    /* Kopier- und Zuweisschutz: */
    PanelWinNode(const PanelWinNode&) = delete;
@@ -206,19 +224,16 @@ public:
    PanelWinNode& operator=(const PanelWinNode&) = delete;
    PanelWinNode& operator=(const PanelWinNode&&) = delete;
 
+   virtual void deleteSource() override;
 
-   void init(Geometry d);
-
+   virtual void init(Geometry) override;
 
    virtual PanelNode* getPanel()
    {
       return panel.getPointer();
    }
 
-   virtual ~PanelWinNode()
-   {
-      panel.deletePointer();
-   }
+   virtual ~PanelWinNode();
 
    virtual WindowResponse readKey(int ch)   /* Unterklassen fügen hinzu... */
    {
@@ -232,10 +247,12 @@ public:
 */
 
 class AbstractSubWinNode : public AbstractWindowNode {
-   AbstractWindowNode& parent;
+//   AbstractWindowNode& parent;
 
 public:
-   AbstractSubWinNode(AbstractWindowNode& w) : parent(w) {}
+   AbstractSubWinNode(AbstractWindowNode* w) : AbstractWindowNode(w) {
+      if (w == nullptr) throw BadDesign("AbstractSubWinNode(): parent == nullptr!");
+   }
 
    /* Kopier- und Zuweisschutz: */
    AbstractSubWinNode(const AbstractSubWinNode&) = delete;
@@ -243,20 +260,15 @@ public:
    AbstractSubWinNode& operator=(const AbstractSubWinNode&) = delete;
    AbstractSubWinNode& operator=(const AbstractSubWinNode&&) = delete;
 
+   virtual ~AbstractSubWinNode() = default;
+
    /* Diese Methode setzt voraus, dass mein *WINDOW schon
       definiert ist, also daß init() schon aufgerufen wurde.
       *WINDOW kann auch mit getParentNode().getCPointer()
       abgerufen werden. */
    WINDOW* getParentSource() const;
 
-   const AbstractWindowNode& getParentNode() const
-   {
-      return parent;
-   }
-
    void update() const override;
-
-   virtual ~AbstractSubWinNode() = default;
 }; // AbstractSubWinNode
 
 
@@ -270,7 +282,7 @@ class DerWinNode : public AbstractSubWinNode {
       des Fensters bei der Funktion subwin aber *relativ zum Screen* festgelegt wird, ist
       die Position bei derwin relativ zum *orig-Fenster*.                              */
 public:
-   DerWinNode(AbstractWindowNode& w);
+   DerWinNode(AbstractWindowNode* w);
 
    /* Kopier- und Zuweisschutz: */
    DerWinNode(const DerWinNode&) = delete;
@@ -292,7 +304,7 @@ public:
 class SubWinNode : public AbstractSubWinNode {
 //
 public:
-   SubWinNode(AbstractWindowNode& w);
+   SubWinNode(AbstractWindowNode* w);
 
    /* Kopier- und Zuweisschutz: */
    SubWinNode(const SubWinNode&) = delete;

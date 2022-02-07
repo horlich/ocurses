@@ -274,7 +274,6 @@ void FormNode::focusPrev() const
 
 Ocurses::WindowResponse FormNode::readKey(int ch)   /* vgl. dazu PanelWinNode::readKey(int) */
 {
-   PRINTDEBUGMESS
    const int KEY_TAB = 9;
    int ai = getActiveIndex();
    FieldNode* active = felder.at(ai);
