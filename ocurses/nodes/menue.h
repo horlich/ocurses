@@ -9,18 +9,12 @@
 #define OCURSES_NODES_MENUE_H_
 
 
-#include <ncursesw/form.h>
-#include <ncursesw/panel.h>
-#include <ncursesw/menu.h>
-
+//#include <ncursesw/menu.h>
+//
 #include <omemory.h>
 #include <otextutil.h>
 #include <string>
-#include <stack>
-
 #include "../nodes.h"
-#include "../konstanten.h"
-#include "../exceptions.h"
 #include "window.h"
 
 using TextUtil::Dimension;
@@ -33,119 +27,120 @@ namespace Ocurses {
 
 
 
-
-
-
-class MenuItemNode : public AbstractNode<ITEM> {
-	std::string name, description;
-
-	/* Kopier- und Zuweisschutz: */
-	MenuItemNode(const MenuItemNode&);
-	MenuItemNode& operator=(const MenuItemNode&);
-
-public:
-	MenuItemNode(const std::string& n, const std::string& d = "") :
-			AbstractNode("ITEM", new_item(n.c_str(), d.c_str())),
-			name(n),
-			description(d) {}
-
-	virtual ~MenuItemNode() { free_item(getCPointer()); }
-
-	int getIndex() const;
-
-	MENU* getMenu() const { return getCPointer()->imenu; }
-
-	Dimension getSize() const override;
-
-	Dimension getPosition() const override;
+struct MenuListener {
+   /* Methode erhält den Index desjenigen Items übergeben,
+      das mittels der Returntaste ausgewählt wurde:     */
+   virtual void itemSelected(int index) = 0;
 };
 
 
+/*-------------------/ MenuNode: /-----------------------*/
 
-using ItemVec = std::vector<MenuItemNode*>;
 
+using ItemPair = std::pair<const char*, const char*>;
+using ItemVec = std::vector<ItemPair>;
 
 
 class MenuNode : public AbstractNode<MENU> {
-	//
-	ITEM** itemArray = nullptr;
-//	std::vector<MenuItemNode*> itemNodes;
-	ItemVec items;
+   //
+   ITEM** itemArray = nullptr;
+   ItemVec itempairs;
+   MenuListener* mlist = nullptr;
 
-	/* Kopier- und Zuweisschutz: */
-	MenuNode(const MenuNode&);
-	MenuNode& operator=(const MenuNode&);
+   void deleteAll();
 
 protected:
-	Dimension scaleMenu();
+   Dimension scaleMenu();
 
 public:
-	MenuNode (ItemVec vec) : AbstractNode<MENU>("MENU"), items(vec) {
-		createMenu();
-	}
+   MenuNode () : AbstractNode<MENU>("MENU") {}
 
-	virtual ~MenuNode();
+   /* Kopier- und Zuweisschutz: */
+   MenuNode(const MenuNode&) = delete;
+   MenuNode(const MenuNode&&) = delete;
+   MenuNode& operator=(const MenuNode&) = delete;
+   MenuNode& operator=(const MenuNode&&) = delete;
 
-	void foreground(chtype attr);
+   virtual ~MenuNode();
 
-	void background(chtype attr);
+   void addItem(const char* name, const char* description);
 
-	int setMenuMark(const std::string& str) { return set_menu_mark(getCPointer(), str.c_str()); }
+   void setMenuListener(MenuListener* ml) { mlist = ml; }
 
-//	MenuItemNode* addItem(const std::string& name, const std::string& description = "");
+   /* WICHTIG post() muß ausgeführt werden, *
+    * um das Menü anzuzeigen!!!             */
+   virtual int post();
 
-	virtual void createMenu();
+   void foreground(ColorPair&) const;
 
-	int getItemCount() const;
+   void background(ColorPair&) const;
 
-	int setMenuSub(const AbstractWindowNode& w, const TextUtil::Dimension& pos);
+   void showDescription(bool b);
 
-	int menuDriver(int command) const;
+   virtual void init();
 
-	/* WICHTIG post() muß ausgeführt werden, *
-	 * um das Menü anzuzeigen!!!             */
-	int post() const;
+   int getItemCount() const;
 
-	ITEM* getMember(int index) const;
+   int getLastItemIndex() const
+   {
+      return getItemCount() - 1;
+   }
 
-	ITEM* getActiveItem() const;
+   /* Muß vor post() aufgerufen werden: */
+   int setMenuMark( const char* mark ) const;
 
-	/* Bei Fehler wird -1 zurückgegeben. */
-	int getActiveIndex() const;
+   int setMenuSub(const AbstractWindowNode& w, const TextUtil::Dimension& pos);
 
-	/* Bei Fehler wird nullptr zurückgegeben. */
-	ITEM* setActive(int index = 0) const;
+   int menuDriver(int command) const;
 
-	/* Gibt den Index zurück; bei Fehler -1: */
-	int setActive(MenuItemNode& f) const;
+   /* Bei Fehler wird -1 zurückgegeben. */
+   int getActiveIndex() const;
 
-	int printKey(int ch) const;
+   /* Gibt die Rückgabewerte laut 'man set_current_item' zurück: */
+   int setActive(int index = 0) const;
 
-	Dimension getSize() const override;
+   Ocurses::WindowResponse readKey(int ch); /* vgl. dazu PanelWinNode::readKey(int) */
 
-	Dimension getPosition() const override;
-};
+   int printKey(int ch) const;
+
+   Dimension getSize() const override;
+
+   Dimension getPosition() const override;
+}; // MenuNode
 
 
 
+/*-------------------/ WindowMenuNode: /-----------------------*/
 
 class WindowMenuNode : public MenuNode {
-	//
-//	StackPointer<AbstractWindowNode> spWindow;
-//	Dimension pos;
+   //
+   AbstractWindowNode& parentWin;
+   TextUtil::Dimension position;
 
 public:
-	WindowMenuNode(ItemVec items, AbstractWindowNode* parent, TextUtil::Dimension position);
+   WindowMenuNode(AbstractWindowNode& parent, TextUtil::Dimension position);
 
-	virtual ~WindowMenuNode() = default;
+   /* Kopier- und Zuweisschutz: */
+   WindowMenuNode(const WindowMenuNode&) = delete;
+   WindowMenuNode(const WindowMenuNode&&) = delete;
+   WindowMenuNode& operator=(const WindowMenuNode&) = delete;
+   WindowMenuNode& operator=(const WindowMenuNode&&) = delete;
 
-//	void createMenu() override;
+   virtual ~WindowMenuNode() = default;
 
-	WINDOW* getSubWin() const { return getCPointer()->sub; }
+   WINDOW* getSubWin() const
+   {
+      return getCPointer()->sub;
+   }
 
-	WINDOW* getWindow() const { return getCPointer()->win; }
+   WINDOW* getWindow() const
+   {
+      return getCPointer()->win;
+   }
 
-	Dimension getPosition() const override;
+   Dimension getPosition() const override;
+
+   int post() override;
 };
 
 

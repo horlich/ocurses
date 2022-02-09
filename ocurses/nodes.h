@@ -8,9 +8,10 @@
 #ifndef OCURSES_NODES_H_
 #define OCURSES_NODES_H_
 
-#include <ncursesw/form.h>
-#include <ncursesw/panel.h>
-#include <ncursesw/menu.h>
+#include <ncursesw/curses.h>
+//#include <ncursesw/form.h>
+//#include <ncursesw/panel.h>
+//#include <ncursesw/menu.h>
 
 #include <omemory.h>
 #include <otextutil.h>
