@@ -37,15 +37,6 @@ AbstractWindowNode::~AbstractWindowNode()
 }
 
 
-void AbstractWindowNode::addChild(AbstractWindowNode& child)
-{
-   /* Prüfe, ob noch schon in children enthalten: */
-   if (std::find(children.begin(), children.end(), &child) != children.end()) return;
-   children.push_back(&child);
-//   child.setParent(*this);
-}
-
-
 Dimension AbstractWindowNode::getSize() const
 {
    Dimension ret;
@@ -59,7 +50,6 @@ Dimension AbstractWindowNode::getPosition() const
    getbegyx(getCPointer(), ret.height, ret.width);
    return ret;
 }
-
 
 void AbstractWindowNode::update() const
 {

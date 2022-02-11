@@ -13,9 +13,11 @@
 //
 #include <omemory.h>
 #include <otextutil.h>
+#include <ncursesw/menu.h>
 #include <string>
 #include "../nodes.h"
 #include "window.h"
+#include "events.h"
 
 using TextUtil::Dimension;
 using Memory::StackPointer;
@@ -25,13 +27,10 @@ using Memory::StackPointer;
 
 namespace Ocurses {
 
+class MenuNode;
+//class AbstractWindowNode;
 
 
-struct MenuListener {
-   /* Methode erhält den Index desjenigen Items übergeben,
-      das mittels der Returntaste ausgewählt wurde:     */
-   virtual void itemSelected(int index) = 0;
-};
 
 
 /*-------------------/ MenuNode: /-----------------------*/
@@ -40,12 +39,17 @@ struct MenuListener {
 using ItemPair = std::pair<const char*, const char*>;
 using ItemVec = std::vector<ItemPair>;
 
+/* Code, der bei Auswahl eines Menüitems zurückgegeben wird: */
+using MenuSelect = int;
+
 
 class MenuNode : public AbstractNode<MENU> {
    //
    ITEM** itemArray = nullptr;
    ItemVec itempairs;
-   MenuListener* mlist = nullptr;
+   EventListener* elist = nullptr;
+   static int lastID; /* muß in menue.cpp initialisiert werden! */
+   int myID = 0;
 
    void deleteAll();
 
@@ -53,7 +57,7 @@ protected:
    Dimension scaleMenu();
 
 public:
-   MenuNode () : AbstractNode<MENU>("MENU") {}
+   MenuNode () : AbstractNode<MENU>("MENU"), myID(++lastID) {}
 
    /* Kopier- und Zuweisschutz: */
    MenuNode(const MenuNode&) = delete;
@@ -63,13 +67,15 @@ public:
 
    virtual ~MenuNode();
 
-   void addItem(const char* name, const char* description);
+   void addItem(const char* name, const char* description = "");
 
-   void setMenuListener(MenuListener* ml) { mlist = ml; }
+   void setEventListener(EventListener* ml) { elist = ml; }
 
    /* WICHTIG post() muß ausgeführt werden, *
     * um das Menü anzuzeigen!!!             */
    virtual int post();
+
+   inline int getID() const { return myID; }
 
    void foreground(ColorPair&) const;
 
@@ -110,7 +116,9 @@ public:
 
 
 
+
 /*-------------------/ WindowMenuNode: /-----------------------*/
+
 
 class WindowMenuNode : public MenuNode {
    //

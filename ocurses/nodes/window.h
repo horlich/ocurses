@@ -14,6 +14,7 @@
 #include "../nodes.h"
 #include "../../ocurses.h"
 #include "panel.h"
+//#include "menu.h"
 #include "otextutil.h"
 #include "omemory.h"
 
@@ -30,20 +31,16 @@ namespace Ocurses {
 
 class PanelWinNode;
 class Geometry;
-class AbstractWindowNode;
 class SubWinNode;
+class MenuListener;
 
 
 /*
                      AbstractWindowNode:
 */
 
-using WinChilds = std::vector<AbstractWindowNode*>;
-
-
 class AbstractWindowNode : public AbstractNode<WINDOW> {
    //
-   WinChilds children; /* Brauchen wir wahrscheinlich nicht */
    AbstractWindowNode* parent = nullptr;
 
 protected:
@@ -63,11 +60,8 @@ public:
    /* Wenn kein parent, gibt nullptr zurück: */
    const AbstractWindowNode* getParent() const { return parent; }
 
-   /* Hier müssen die Subwindows und Formulare initialisiert werden: */
+   /* Hier müssen die Subwindows, Formulare und Menüs initialisiert werden: */
    virtual void initChildren() { /* Unterklassen... */ }
-
-   /* Wird wahrscheinlich gar nicht gebraucht: */
-   void addChild(AbstractWindowNode& child);
 
    /* NICHT verwenden, wenn Panels im Einsatz!
     * Diesfalls WindowManager::updatePanels() verwenden! */

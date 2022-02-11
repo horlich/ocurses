@@ -12,7 +12,8 @@ using namespace Ocurses;
 using namespace std;
 
 
-
+/* statische Klassenvariable müssen so initialisiert werden: */
+int MenuNode::lastID = 0;
 
 
 /*-------------------/ MenuNode: /-----------------------*/
@@ -179,8 +180,10 @@ Ocurses::WindowResponse MenuNode::readKey(int ch)
       if (getActiveIndex() > 0) menuDriver(REQ_UP_ITEM);
       return CONTINUE_LISTENING;
    case '\n':
-      if (mlist != nullptr) {
-      mlist->itemSelected(getActiveIndex());
+      if (elist != nullptr) { /* Es ist ein EventListener definiert */
+         MenuEvent ev(getID());
+         ev.setSelectedIndex(getActiveIndex());
+         elist->eventTriggered(ev);
       }
       return CONTINUE_LISTENING;
    default: /* Unbekannte Taste... */
