@@ -16,7 +16,7 @@
 #include <ncursesw/menu.h>
 #include <string>
 #include "../nodes.h"
-#include "window.h"
+//#include "window.h"
 #include "events.h"
 
 using TextUtil::Dimension;
@@ -28,7 +28,7 @@ using Memory::StackPointer;
 namespace Ocurses {
 
 class MenuNode;
-//class AbstractWindowNode;
+class AbstractWindowNode;
 
 
 
@@ -39,9 +39,6 @@ class MenuNode;
 using ItemPair = std::pair<const char*, const char*>;
 using ItemVec = std::vector<ItemPair>;
 
-/* Code, der bei Auswahl eines Menüitems zurückgegeben wird: */
-using MenuSelect = int;
-
 
 class MenuNode : public AbstractNode<MENU> {
    //
@@ -51,10 +48,7 @@ class MenuNode : public AbstractNode<MENU> {
    static int lastID; /* muß in menue.cpp initialisiert werden! */
    int myID = 0;
 
-   void deleteAll();
-
 protected:
-   Dimension scaleMenu();
 
 public:
    MenuNode () : AbstractNode<MENU>("MENU"), myID(++lastID) {}
@@ -67,19 +61,29 @@ public:
 
    virtual ~MenuNode();
 
+   void deleteSources();
+
    void addItem(const char* name, const char* description = "");
 
-   void setEventListener(EventListener* ml) { elist = ml; }
+   void setEventListener(EventListener* ml)
+   {
+      elist = ml;
+   }
+
+   Dimension scaleMenu();
 
    /* WICHTIG post() muß ausgeführt werden, *
     * um das Menü anzuzeigen!!!             */
    virtual int post();
 
-   inline int getID() const { return myID; }
+   inline int getID() const
+   {
+      return myID;
+   }
 
-   void foreground(ColorPair&) const;
+   void setForeground(ColorPair&) const;
 
-   void background(ColorPair&) const;
+   void setBackground(ColorPair&) const;
 
    void showDescription(bool b);
 
@@ -117,39 +121,82 @@ public:
 
 
 
-/*-------------------/ WindowMenuNode: /-----------------------*/
-
-
-class WindowMenuNode : public MenuNode {
-   //
-   AbstractWindowNode& parentWin;
-   TextUtil::Dimension position;
-
-public:
-   WindowMenuNode(AbstractWindowNode& parent, TextUtil::Dimension position);
-
-   /* Kopier- und Zuweisschutz: */
-   WindowMenuNode(const WindowMenuNode&) = delete;
-   WindowMenuNode(const WindowMenuNode&&) = delete;
-   WindowMenuNode& operator=(const WindowMenuNode&) = delete;
-   WindowMenuNode& operator=(const WindowMenuNode&&) = delete;
-
-   virtual ~WindowMenuNode() = default;
-
-   WINDOW* getSubWin() const
-   {
-      return getCPointer()->sub;
-   }
-
-   WINDOW* getWindow() const
-   {
-      return getCPointer()->win;
-   }
-
-   Dimension getPosition() const override;
-
-   int post() override;
-};
+//
+///*-------------------/ MenuWindow: /-----------------------*/
+//
+//
+//class MenuWindow : public DerWinNode {
+//   /*
+//      Alle menu-Methoden unter'man menu(3x)'
+//   */
+//   Memory::StackPointer<MENU> menunode;
+//   ITEM** itemArray = nullptr;
+//   ItemVec itempairs;
+//   EventListener* elist = nullptr;
+//   static int lastID; /* muß in menue.cpp initialisiert werden! */
+//   int myID = 0;
+//   bool show_description = false;
+//   std::string menu_mark;
+//
+//   virtual void init(Geometry d) {}; /* Funktion sperren! */
+//
+//   int menuDriver(int command) const;
+//
+//public:
+//   MenuWindow(AbstractWindowNode* parent) : DerWinNode(parent), menunode("MENU"), myID(++lastID) {}
+//
+//   /* Kopier- und Zuweisschutz: */
+//   MenuWindow(const MenuWindow&) = delete;
+//   MenuWindow(const MenuWindow&&) = delete;
+//   MenuWindow& operator=(const MenuWindow&) = delete;
+//   MenuWindow& operator=(const MenuWindow&&) = delete;
+//
+//   virtual ~MenuWindow();
+//
+//   void setEventListener(EventListener* ml)
+//   {
+//      elist = ml;
+//   }
+//
+//   void addItem(const char* name, const char* description = "");
+//
+//   virtual void init(Dimension position);
+//
+//   inline int getID() const
+//   {
+//      return myID;
+//   }
+//
+//   void setBackground(ColorPair& cp) override;
+//
+//   void setForeground(ColorPair& cp);
+//
+//   /* Muß vor init() aufgerufen werden: */
+//   void showDescription();
+//
+//   /* Muß vor init() aufgerufen werden: */
+//   void setMenuMark( const std::string& );
+//
+//   Dimension getMenuSize() const;
+//
+//   int getItemCount() const;
+//
+//   int getLastItemIndex() const
+//   {
+//      return getItemCount() - 1;
+//   }
+//
+//   /* Bei Fehler wird -1 zurückgegeben. */
+//   int getActiveIndex() const;
+//
+//   /* Gibt die Rückgabewerte laut 'man set_current_item' zurück: */
+//   int setActive(int index = 0) const;
+//
+//   WindowResponse readKey(int ch);
+//
+//   void deleteSource() override;
+//}; // MenuWindow
+//
 
 
 

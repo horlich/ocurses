@@ -21,35 +21,35 @@ namespace Ocurses {
 
 class OcursesException : public OException::Fehler {
 public:
-	OcursesException(const std::string& message);
+   OcursesException(const std::string& message);
 
-	virtual ~OcursesException() = default;
+   virtual ~OcursesException() = default;
 };
 
 
 class CannotCreatePointer : public OcursesException {
 public:
-	CannotCreatePointer(const std::string& message);
+   CannotCreatePointer(const std::string& message);
 
-	virtual ~CannotCreatePointer() = default;
+   virtual ~CannotCreatePointer() = default;
 };
 
 
 class ColorException : public OcursesException {
 public:
-	ColorException(const std::string& message);
+   ColorException(const std::string& message);
 
-	virtual ~ColorException() = default;
+   virtual ~ColorException() = default;
 };
 
 
 class BadDesign : public OcursesException {
 public:
-	BadDesign(const std::string& message);
+   BadDesign(const std::string& message);
 
-	BadDesign(const char* funcname, const std::string& message);
+   BadDesign(const char* funcname, const std::string& message);
 
-	virtual ~BadDesign() = default;
+   virtual ~BadDesign() = default;
 };
 
 

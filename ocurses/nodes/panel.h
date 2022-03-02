@@ -10,18 +10,10 @@
 
 
 
-#include <ncursesw/form.h>
 #include <ncursesw/panel.h>
-#include <ncursesw/menu.h>
-
 #include <omemory.h>
 #include <otextutil.h>
-#include <string>
-#include <stack>
-
 #include "../nodes.h"
-#include "../konstanten.h"
-#include "../exceptions.h"
 
 
 using TextUtil::Dimension;

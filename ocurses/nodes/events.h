@@ -15,6 +15,12 @@ class Event {
 public:
    Event(int trigger_id) : triggerID(trigger_id) {}
 
+   /* Kopier- und Zuweisschutz: */
+   Event(const Event&) = delete;
+   Event(const Event&&) = delete;
+   Event& operator=(const Event&) = delete;
+   Event& operator=(const Event&&) = delete;
+
    virtual ~Event() = default;
 
    virtual std::string getClass() const { return "Event"; }
@@ -32,6 +38,12 @@ class MenuEvent : public Event {
 public:
    using Event::Event;
 
+   /* Kopier- und Zuweisschutz: */
+   MenuEvent(const MenuEvent&) = delete;
+   MenuEvent(const MenuEvent&&) = delete;
+   MenuEvent& operator=(const MenuEvent&) = delete;
+   MenuEvent& operator=(const MenuEvent&&) = delete;
+
    virtual ~MenuEvent() = default;
 
    virtual std::string getClass() const override { return "MenuEvent"; }
@@ -43,7 +55,16 @@ public:
 
 
 class EventListener {
+   //
 public:
+   EventListener() = default;
+
+   /* Kopier- und Zuweisschutz: */
+   EventListener(const EventListener&) = delete;
+   EventListener(const EventListener&&) = delete;
+   EventListener& operator=(const EventListener&) = delete;
+   EventListener& operator=(const EventListener&&) = delete;
+
    virtual ~EventListener() = default;
 
    virtual void eventTriggered(const Event&) = 0;

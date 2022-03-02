@@ -8,13 +8,14 @@
 #ifndef OCURSES_NODES_WINDOW_H_
 #define OCURSES_NODES_WINDOW_H_
 
-
-
-
+#include "ncursesw/curses.h"
+#include <ncursesw/menu.h>
+#include "../konstanten.h"
+#include "../util.h"
+#include "events.h"
+#include "panel.h"
 #include "../nodes.h"
 #include "../../ocurses.h"
-#include "panel.h"
-//#include "menu.h"
 #include "otextutil.h"
 #include "omemory.h"
 
@@ -30,9 +31,7 @@ namespace Ocurses {
 
 
 class PanelWinNode;
-class Geometry;
-class SubWinNode;
-class MenuListener;
+class MenuWindow;
 
 
 /*
@@ -58,7 +57,10 @@ public:
    virtual void deleteSource(); /* Löscht *WINDOW */
 
    /* Wenn kein parent, gibt nullptr zurück: */
-   const AbstractWindowNode* getParent() const { return parent; }
+   AbstractWindowNode* getParent() const
+   {
+      return parent;
+   }
 
    /* Hier müssen die Subwindows, Formulare und Menüs initialisiert werden: */
    virtual void initChildren() { /* Unterklassen... */ }
@@ -66,6 +68,11 @@ public:
    /* NICHT verwenden, wenn Panels im Einsatz!
     * Diesfalls WindowManager::updatePanels() verwenden! */
    virtual void update() const;
+
+   virtual bool isInit()
+   {
+      return pointerIsValid();
+   }
 
    Dimension getSize() const override;
 
@@ -134,7 +141,7 @@ public:
 
    void uncolor(ColorPair& cp);
 
-   void setBackground(ColorPair& cp);
+   virtual void setBackground(ColorPair& cp);
 
    void setLineBackground(int line, ColorPair& cp, int startx = 0) const;
 
@@ -195,6 +202,8 @@ public:
 
    void popUp(PanelWinNode& popup);
 
+   void popUpMenu(MenuWindow& popup);
+
    void showSimpleMessage(const std::wstring& message);
 
 }; // WinNode
@@ -244,7 +253,8 @@ class AbstractSubWinNode : public AbstractWindowNode {
 //   AbstractWindowNode& parent;
 
 public:
-   AbstractSubWinNode(AbstractWindowNode* w) : AbstractWindowNode(w) {
+   AbstractSubWinNode(AbstractWindowNode* w) : AbstractWindowNode(w)
+   {
       if (w == nullptr) throw BadDesign("AbstractSubWinNode(): parent == nullptr!");
    }
 
@@ -262,7 +272,10 @@ public:
       abgerufen werden. */
    WINDOW* getParentSource() const;
 
-   void update() const override;
+   virtual void update() const override;
+
+   virtual void quit();
+
 }; // AbstractSubWinNode
 
 
@@ -276,7 +289,7 @@ class DerWinNode : public AbstractSubWinNode {
       des Fensters bei der Funktion subwin aber *relativ zum Screen* festgelegt wird, ist
       die Position bei derwin relativ zum *orig-Fenster*.                              */
 public:
-   DerWinNode(AbstractWindowNode* w);
+   DerWinNode(AbstractWindowNode* parent);
 
    /* Kopier- und Zuweisschutz: */
    DerWinNode(const DerWinNode&) = delete;
@@ -284,7 +297,7 @@ public:
    DerWinNode& operator=(const DerWinNode&) = delete;
    DerWinNode& operator=(const DerWinNode&&) = delete;
 
-   void init(Geometry d);
+   virtual void init(Geometry d);
 
    virtual ~DerWinNode() = default;
 };
@@ -306,10 +319,96 @@ public:
    SubWinNode& operator=(const SubWinNode&) = delete;
    SubWinNode& operator=(const SubWinNode&&) = delete;
 
-   void init(Geometry d);
+   virtual void init(Geometry d);
 
    virtual ~SubWinNode() = default;
 };
+
+
+
+
+/*-------------------/ MenuWindow: /-----------------------*/
+
+constexpr Dimension DEFAULT_MENU_FORMAT(16,1);
+
+using ItemPair = std::pair<const char*, const char*>;
+using ItemVec = std::vector<ItemPair>;
+
+class MenuWindow : public DerWinNode {
+   /*
+      Alle menu-Methoden unter'man menu(3x)'
+   */
+   Memory::StackPointer<MENU> menunode;
+   ITEM** itemArray = nullptr;
+   ItemVec itempairs;
+   EventListener* elist = nullptr;
+   static int lastID; /* muß in window.cpp initialisiert werden! */
+   int myID = 0;
+   bool show_description = false;
+   std::string menu_mark;
+   Dimension menu_format{DEFAULT_MENU_FORMAT};
+
+   virtual void init(Geometry d) {}; /* Funktion sperren! */
+
+   int menuDriver(int command) const;
+
+public:
+   MenuWindow(AbstractWindowNode* parent) : DerWinNode(parent), menunode("MENU"), myID(++lastID) {}
+
+   /* Kopier- und Zuweisschutz: */
+   MenuWindow(const MenuWindow&) = delete;
+   MenuWindow(const MenuWindow&&) = delete;
+   MenuWindow& operator=(const MenuWindow&) = delete;
+   MenuWindow& operator=(const MenuWindow&&) = delete;
+
+   virtual ~MenuWindow();
+
+   void setEventListener(EventListener* ml)
+   {
+      elist = ml;
+   }
+
+   inline void setMenuFormat(Dimension d) { menu_format = d; }
+
+   void addItem(const char* name, const char* description = "");
+
+   virtual void init(Dimension position);
+
+   inline int getID() const
+   {
+      return myID;
+   }
+
+   void setBackground(ColorPair& cp) override;
+
+   void setForeground(ColorPair& cp);
+
+   /* Muß vor init() aufgerufen werden: */
+   void showDescription();
+
+   /* Muß vor init() aufgerufen werden: */
+   void setMenuMark( const std::string& );
+
+   Dimension getMenuSize() const;
+
+   int getItemCount() const;
+
+   int getLastItemIndex() const
+   {
+      return getItemCount() - 1;
+   }
+
+   /* Bei Fehler wird -1 zurückgegeben. */
+   int getActiveIndex() const;
+
+   /* Gibt die Rückgabewerte laut 'man set_current_item' zurück: */
+   int setActive(int index = 0) const;
+
+   WindowResponse readKey(int ch);
+
+   void deleteSource() override;
+}; // MenuWindow
+
 
 
 

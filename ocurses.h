@@ -8,12 +8,10 @@
 #ifndef OCURSES_H_
 #define OCURSES_H_
 
-#include <ncursesw/curses.h>
-#include <omemory.h>
-#include "otextutil.h"
-//
-#include "ocurses/konstanten.h"
+#include "ocurses/util.h"
 #include "ocurses/nodes/window.h"
+#include "ocurses/pmanager.h"
+#include "omemory.h"
 
 /*
  *  Wichtig zum Kompilieren:
@@ -36,84 +34,17 @@ namespace Ocurses {
 
 
 /* in ocurses/windows.h: */
-class ScreenNode;
-class ColorPair;
-class PanelWinNode;
-class AbstractWindowNode;
+//class ScreenNode;
+//class ColorPair;
+//class PanelWinNode;
+//class AbstractWindowNode;
 //class TextUtil::Dimension;
 
 using Memory::StackPointer;
 using TextUtil::Dimension;
 
-
-
-/*
-                          Geometry:
-*/
-
-using DimArray = std::array<int, 4>;
-
-class Geometry : public DimArray {
-/* Arraybelegung: lines | cols | begin_y | begin_x */
-public:
-   Geometry(int lines = LINES, int cols = COLS, int begin_y = 0, int begin_x = 0);
-};
-
-std::ostream& operator<< (std::ostream& os, const Geometry& sd);
-
-Geometry fullScreen();
-
-
-
-/*
-                         AbstractPanelManager:
-*/
-
-class AbstractPanelManager {
-   /* Unterklassen müssen die Methode
-      readKey(int) implementieren     */
-private:
-   Memory::StackPointer<Ocurses::PanelWinNode> topWindow;
-
-public:
-   AbstractPanelManager() : topWindow("Top Window") {}
-
-   /* Kopier- und Zuweisschutz: */
-   AbstractPanelManager(const AbstractPanelManager&) = delete;
-   AbstractPanelManager(const AbstractPanelManager&&) = delete;
-   AbstractPanelManager& operator=(const AbstractPanelManager&) = delete;
-   AbstractPanelManager& operator=(const AbstractPanelManager&&) = delete;
-
-   virtual ~AbstractPanelManager() = default;
-
-   /* Führt auch draw() aus und updatet: */
-   virtual void setTop(PanelWinNode* pn);
-
-   /* Gibt nullptr zurück, wenn topWindow nicht definiert ist: */
-   virtual PanelWinNode* getTopWindow() const
-   {
-      return topWindow.getPointer();
-   }
-
-   /* Unterklassen können bestimmen, welches
-      Fenster zu Programmstart angezeigt werden soll: */
-   virtual PanelWinNode* getStartWindow()
-   {
-      return nullptr;
-   }
-
-   /* Code: KEY_RESIZE */
-   virtual void keyResizePressed() const;
-
-   virtual Ocurses::WindowResponse readKey(int ch) = 0;
-
-   Ocurses::WindowResponse myReadKey(int ch);
-};
-
-
-void keyResizePressed(AbstractWindowNode* win);
-
-Dimension getScreenSize();
+class ScreenNode;
+class AbstractPanelManager;
 
 
 /*
@@ -139,9 +70,8 @@ public:
 
    /* führt auch init() und setTop() des StartWindows aus: */
    virtual void start(AbstractPanelManager& pm);
-
-   virtual void updatePanels() const;
 };
+
 
 
 
@@ -153,8 +83,10 @@ public:
 bool showCursor(bool show = true);
 
 
+Dimension getScreenSize();
 
 
+void updatePanels();
 
 
 } // Ende namespace Ocurses

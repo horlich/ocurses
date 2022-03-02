@@ -57,10 +57,14 @@ using WindowResponse = int;
 
 /* Diese Konstanten dürfen keine Werte von Tastatur-Keys *
  * (ASCII oder Latin1) enthalten:                        */
-const WindowResponse CONTINUE_LISTENING	= 1000;
-const WindowResponse QUIT_PROGRAM_KEY 	   = 1010;
-const WindowResponse QUIT_WINDOW 	   	= 1013;
-const WindowResponse ASK_PARENT	 		   = 1015;
+constexpr WindowResponse CONTINUE_LISTENING	= 1000;
+constexpr WindowResponse QUIT_PROGRAM_KEY    = 1010;
+constexpr WindowResponse QUIT_WINDOW 	   	= 1013;
+constexpr WindowResponse ASK_PARENT	 		   = 1015;
+
+constexpr int KEY_ESC      = 27; /* Escape-Taste */
+constexpr int KEY_RETURN   = '\n';
+
 
 
 

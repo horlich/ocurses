@@ -13,8 +13,10 @@
 #include <ncursesw/form.h>
 #include <omemory.h>
 #include <otextutil.h>
+#include "../util.h"
 #include "../nodes.h"
-#include "../../ocurses.h"
+#include "window.h" /* Das soll später weg!!! */
+//#include "../../ocurses.h"
 
 
 using TextUtil::Dimension;

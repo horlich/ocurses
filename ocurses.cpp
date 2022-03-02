@@ -16,75 +16,6 @@ using TextUtil::Dimension;
 namespace Ocurses {
 
 
-/*
-                          Geometry:
-*/
-
-Geometry::Geometry(int lines, int cols, int begin_y, int begin_x) :
-      DimArray{lines, cols, begin_y, begin_x} {}
-
-std::ostream& operator<< (std::ostream& os, const Geometry& sd) {
-   os << '(' << sd[0] << ", " << sd[1] << ", " << sd[2] << ", " << sd[3] << ')';
-   return os;
-}
-
-Geometry fullScreen() { return Geometry(); }
-
-
-
-
-
-/*
-                         AbstractPanelManager:
-*/
-
-void AbstractPanelManager::setTop(PanelWinNode* pn)
-{
-   PanelWinNode* oldw = getTopWindow();
-   if (! pn->pointerIsValid())
-      throw BadDesign("AbstractPanelManager::setTop(): init() für Fenster wurde nicht aufgerufen!");
-   if (oldw != nullptr) oldw->lostFocus();
-   topWindow.setPointer(pn);
-   pn->getPanel()->top();
-   pn->draw();
-   pn->gotFocus();
-   update_panels();
-}
-
-
-void AbstractPanelManager::keyResizePressed() const
-{
-   PanelWinNode* wn = getTopWindow();
-   if (wn == nullptr) return;
-   Ocurses::keyResizePressed(wn);
-}
-
-WindowResponse AbstractPanelManager::myReadKey(int ch)
-{
-   if (ch == KEY_RESIZE) {
-      keyResizePressed();
-      return CONTINUE_LISTENING;
-   }
-   return readKey(ch);
-}
-
-
-/*
-                         statische Methoden:
-*/
-
-void keyResizePressed(AbstractWindowNode* win)
-{
-   /* Terminalfenster wurde verändert... *
-    * KEY_RESIZE wurde ausgelöst.        *
-    * Siehe dazu: https://stackoverflow.com/questions/13707137/resizing-glitch-with-ncurses?rq=1 *
-    * oder 'man resizeterm'                                                                      */
-   endwin();
-   win->doResize();
-   win->doClear();
-   win->draw();
-}
-
 
 Dimension getScreenSize()
 {
@@ -135,7 +66,7 @@ void Curses::initColours(std::vector<ColorPair*> vec) const   /* kann mit initCo
 }
 
 
-void Curses::updatePanels() const
+void updatePanels()
 {
    update_panels();
    doupdate();
