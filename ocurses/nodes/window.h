@@ -10,6 +10,7 @@
 
 #include "ncursesw/curses.h"
 #include <ncursesw/menu.h>
+#include <utility>
 #include "../konstanten.h"
 #include "../util.h"
 #include "events.h"
@@ -32,6 +33,7 @@ namespace Ocurses {
 
 class PanelWinNode;
 class MenuWindow;
+class MenuBar;
 
 
 /*
@@ -54,7 +56,12 @@ public:
 
    virtual ~AbstractWindowNode();
 
-   virtual void deleteSource(); /* Löscht *WINDOW */
+   virtual void deleteSource() override; /* Löscht *WINDOW */
+
+   virtual void reset() {
+      AbstractNode<WINDOW>.reset();
+      parent = nullptr;
+   }
 
    /* Wenn kein parent, gibt nullptr zurück: */
    AbstractWindowNode* getParent() const
@@ -158,7 +165,8 @@ public:
    void enableScrolling(bool toggle = true) const;
 
    void scrolln(int lines = 1) const;
-}; // AbstractWindowNode
+}; // class AbstractWindowNode
+
 
 /* Gleich, wenn beide auf dieselbe Adresse zeigen, also ident sind
    Wird gebraucht für std::find():                               */
@@ -202,11 +210,12 @@ public:
 
    void popUp(PanelWinNode& popup);
 
-   void popUpMenu(MenuWindow& popup);
+   void popUpMenu(MenuWindow& popup, Dimension pos);
+
+   void menuBarSelect(MenuBar&);
 
    void showSimpleMessage(const std::wstring& message);
-
-}; // WinNode
+}; // class WinNode
 
 
 
@@ -329,8 +338,6 @@ public:
 
 /*-------------------/ MenuWindow: /-----------------------*/
 
-constexpr Dimension DEFAULT_MENU_FORMAT(16,1);
-
 using ItemPair = std::pair<const char*, const char*>;
 using ItemVec = std::vector<ItemPair>;
 
@@ -338,22 +345,10 @@ class MenuWindow : public DerWinNode {
    /*
       Alle menu-Methoden unter'man menu(3x)'
    */
-   Memory::StackPointer<MENU> menunode;
-   ITEM** itemArray = nullptr;
-   ItemVec itempairs;
-   EventListener* elist = nullptr;
-   static int lastID; /* muß in window.cpp initialisiert werden! */
-   int myID = 0;
-   bool show_description = false;
-   std::string menu_mark;
-   Dimension menu_format{DEFAULT_MENU_FORMAT};
-
-   virtual void init(Geometry d) {}; /* Funktion sperren! */
-
-   int menuDriver(int command) const;
-
 public:
-   MenuWindow(AbstractWindowNode* parent) : DerWinNode(parent), menunode("MENU"), myID(++lastID) {}
+   enum class Align {vertikal, horizontal};
+
+   MenuWindow(AbstractWindowNode* parent, Align a = Align::vertikal) : DerWinNode(parent), menunode("MENU"), myID(++lastID), menu_align(a) {}
 
    /* Kopier- und Zuweisschutz: */
    MenuWindow(const MenuWindow&) = delete;
@@ -363,14 +358,17 @@ public:
 
    virtual ~MenuWindow();
 
-   void setEventListener(EventListener* ml)
+   void setEventListener(EventListener* el)
    {
-      elist = ml;
+      elist = el;
    }
 
-   inline void setMenuFormat(Dimension d) { menu_format = d; }
+   EventListener* getEventListener() { return elist; }
 
    void addItem(const char* name, const char* description = "");
+
+   /* Items ohne Description auf einmal setzen: */
+   void setItems(std::initializer_list<const char*> li);
 
    virtual void init(Dimension position);
 
@@ -382,6 +380,8 @@ public:
    void setBackground(ColorPair& cp) override;
 
    void setForeground(ColorPair& cp);
+
+   void setItemSpacing(int i) { item_spacing = i; }
 
    /* Muß vor init() aufgerufen werden: */
    void showDescription();
@@ -404,11 +404,75 @@ public:
    /* Gibt die Rückgabewerte laut 'man set_current_item' zurück: */
    int setActive(int index = 0) const;
 
-   WindowResponse readKey(int ch);
+   virtual WindowResponse readKey(int ch);
 
    void deleteSource() override;
-}; // MenuWindow
 
+protected:
+   int menuDriver(int command) const;
+
+   int getItemSpacing() const { return item_spacing; }
+
+   const ItemVec& getItems() const { return itempairs; }
+
+private:
+   Memory::StackPointer<MENU> menunode;
+   ITEM** itemArray = nullptr;
+   ItemVec itempairs;
+   EventListener* elist = nullptr;
+   static int lastID; /* muß in window.cpp initialisiert werden! */
+   int myID = 0;
+   int item_spacing = 1;
+   bool show_description = false;
+   std::string menu_mark;
+   Align menu_align;
+
+   virtual void init(Geometry d) {}; /* Funktion sperren! */
+
+   void setMenuFormat();
+   void setMenuSpacing();
+}; // class MenuWindow
+
+
+
+
+
+
+/*-------------------/ Menu: /-----------------------*/
+
+class Menu : public MenuWindow {
+public:
+   Menu(AbstractWindowNode* parent) : MenuWindow(parent, Align::vertikal) {}
+
+   virtual ~Menu() = default;
+
+}; // class Menu
+
+
+
+
+
+/*-------------------/ MenuBar: /-----------------------*/
+
+using MenuVec = std::vector<Menu*>;
+
+class MenuBar : public MenuWindow {
+   //
+public:
+   MenuBar(AbstractWindowNode* parent) : MenuWindow(parent, Align::horizontal) {}
+
+   virtual ~MenuBar() = default;
+
+   void addMenu(Menu& m);
+
+   virtual WindowResponse readKey(int ch) override;
+
+private:
+   MenuVec mvec;
+
+   /* Beginn des ersten Zeichens von Item mit Index item: */
+   int getStartX(int item) const;
+}; // class MenuBar
 
 
 

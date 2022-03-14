@@ -26,7 +26,7 @@ void AbstractWindowNode::deleteSource()
 {
    if (pointerIsValid()) {
       delwin(getCPointer());
-      setPointer(nullptr);
+      AbstractNode<WINDOW>::deleteSource();
    }
 }
 
@@ -245,17 +245,26 @@ void WinNode::popUp(PanelWinNode& popup)
 }
 
 
-void WinNode::popUpMenu(MenuWindow& popup)
+void WinNode::popUpMenu(MenuWindow& mw, Dimension pos)
 {
-   if (! popup.pointerIsValid())
-      throw BadDesign("WinNode::popUp(): init() für WindowMenu wurde nicht aufgerufen!");
-   popup.draw();
+   mw.init(pos);
+   mw.draw();
    WindowResponse resp = CONTINUE_LISTENING;
    while (resp != Ocurses::QUIT_WINDOW) {
-      resp = popup.readKey(wgetch(popup.getCPointer()));
-//      MESSAGE.stream() << "Response: " << resp << "\n";
+      resp = mw.readKey(wgetch(mw.getCPointer()));
    }
-   popup.quit();
+   mw.quit();
+}
+
+
+void WinNode::menuBarSelect(MenuBar& mb)
+{
+   if (! mb.pointerIsValid())
+      throw BadDesign("__PRETTY_FUNCTION__", "init() für MenuBar wurde nicht aufgerufen!");
+   WindowResponse resp = CONTINUE_LISTENING;
+   while (resp != Ocurses::QUIT_WINDOW) {
+      resp = mb.readKey(wgetch(mb.getCPointer()));
+   }
 }
 
 
@@ -382,6 +391,37 @@ void MenuWindow::addItem(const char* name, const char* description)
 }
 
 
+void MenuWindow::setItems(std::initializer_list<const char*> li)
+{
+   for (const char* str : li) addItem(str);
+}
+
+void MenuWindow::setMenuFormat()
+{
+   TextUtil::Dimension format{getItemCount(),1};
+   if (menu_align == Align::horizontal) format.swap_values();
+   set_menu_format(menunode.getPointer(), format.height, format.width);
+}
+
+
+void MenuWindow::setMenuSpacing()
+{
+   /* Zu den Maximalwerten siehe menu_spacing(3) */
+   static constexpr int maxrow       {3};
+   static const int maxcol {TABSIZE};
+   int spc_rows   {0}; /* Setze Defaults... */
+   int spc_columns{0};
+   if (menu_align == Align::vertikal) {
+      spc_rows = std::min(item_spacing, maxrow);
+   }
+   else {
+      spc_columns = std::min(item_spacing, maxcol);
+   }
+   int s = set_menu_spacing(menunode.getPointer(), 0, spc_rows, spc_columns);
+   if (s != E_OK) throw BadDesign("__PRETTY_FUNCTION__", "Fehler in set_menu_spacing");
+}
+
+
 void MenuWindow::init(Dimension position)
 {
    /*----------------- MENU einrichten: ---------------------*/
@@ -399,8 +439,8 @@ void MenuWindow::init(Dimension position)
    if (! menunode.hasValidPointer()) throw BadDesign(__PRETTY_FUNCTION__, "new_menu(FIELDS**) mißlungen.");
    if (! show_description) menu_opts_off(menunode.getPointer(), O_SHOWDESC); /* Description ausschalten */
    set_menu_mark(menunode.getPointer(), menu_mark.c_str());
-   set_menu_format(menunode.getPointer(), menu_format.height, menu_format.width);
-
+   setMenuFormat();
+   setMenuSpacing();
 
    /*----------------- WINDOW einrichten: ---------------------*/
    Dimension msize;
@@ -412,14 +452,13 @@ void MenuWindow::init(Dimension position)
    result = set_menu_sub(menunode.getPointer(), derwin(getCPointer(), msize.height, msize.width,1,1));
    if (result != E_OK)
       throw BadDesign(__PRETTY_FUNCTION__, " set_menu_sub() mißlungen.");
-//   drawBox();
 
    /*--------------- Menü posten: ----------------------*/
    result = post_menu(menunode.getPointer());
    if (result != E_OK) {
       std::string errstr = (result == E_NO_ROOM) ?
-         "Menü paßt nicht ins Fenster. You should consider to use set_menu_format() to solve the problem." :
-         "post_menu mißlungen";
+                           "Menü paßt nicht ins Fenster. You should consider to use set_menu_format() to solve the problem." :
+                           "post_menu mißlungen";
       throw BadDesign(__PRETTY_FUNCTION__, errstr);
    }
    setKeypad(); /* Funktionstasten erkennen */
@@ -564,6 +603,58 @@ void MenuWindow::deleteSource()
 }
 
 
+
+
+/*-------------------/ MenuBar: /-----------------------*/
+
+
+Ocurses::WindowResponse MenuBar::readKey(int ch)
+{
+   switch (ch) {
+   case KEY_RIGHT:
+      if (getActiveIndex() < getLastItemIndex()) menuDriver(REQ_RIGHT_ITEM);
+//      MESSAGE.stream() << "StartX: " << getStartX(getActiveIndex()) << std::endl;
+      return CONTINUE_LISTENING;
+   case KEY_LEFT:
+      if (getActiveIndex() > 0) menuDriver(REQ_LEFT_ITEM);
+      return CONTINUE_LISTENING;
+   case KEY_RETURN: {
+      EventListener* elist = getEventListener();
+      if (elist != nullptr) { /* Es ist ein EventListener definiert */
+         MenuEvent ev(getID());
+         ev.setSelectedIndex(getActiveIndex());
+         elist->eventTriggered(ev);
+      }
+      return QUIT_WINDOW;
+   }
+   case KEY_ESC: /* 27 = ESCAPE */
+      return QUIT_WINDOW;
+   default: /* Unbekannte Taste... */
+      return CONTINUE_LISTENING;
+   }
+}
+
+
+void MenuBar::addMenu(Menu& m)
+{
+   if (static_cast<int>(mvec.size()) >= getItemCount())
+      throw BadDesign(__PRETTY_FUNCTION__, "Hinzufügen eines überzähligen Menü");
+   mvec.push_back(&m);
+}
+
+
+int MenuBar::getStartX(int item) const
+{
+   const ItemVec& iv = getItems();
+   if (item >= static_cast<int>(iv.size()))
+      throw BadDesign("__PRETTY_FUNCTION__", "Ungültiger Item-Index");
+   if (item == 0) return 0;
+   int ret = getItemSpacing() * item;
+   for (int i = 0; i < item; ++i) {
+      ret += strlen(iv[i].first);
+   }
+   return ret;
+}
 
 
 /*------------------------/ ScreenNode: /------------------------*/

@@ -54,6 +54,12 @@ public:
 
 	virtual Dimension getPosition() const = 0;
 
+	virtual void deleteSource() {
+      setPointer(nullptr);
+	}
+
+	virtual void reset() { deleteSource(); }
+
 };
 
 
