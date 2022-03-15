@@ -24,7 +24,7 @@
 using TextUtil::Dimension;
 using Memory::StackPointer;
 
-
+// Erste Änderung
 
 
 namespace Ocurses {
@@ -59,7 +59,7 @@ public:
    virtual void deleteSource() override; /* Löscht *WINDOW */
 
    virtual void reset() {
-      AbstractNode<WINDOW>.reset();
+      AbstractNode<WINDOW>::reset();
       parent = nullptr;
    }
 
